@@ -1,0 +1,7 @@
+main/mr-tmp/
+mrtmp.*
+824-mrinput-*.txt
+*.so
+main/mrcoordinator
+main/mrsequential
+main/mrworker
