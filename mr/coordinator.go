@@ -119,6 +119,7 @@ func (this *Coordinator) AssignTask(args *RequestTaskArgs, reply *RequestTaskRep
 	if this.phase == Map {
 		if task, ok := this.getNextTask(this.mapTasks); ok {
 			reply.Task = task
+			return nil
 		}
 
 		if this.mapDone == this.nMap {

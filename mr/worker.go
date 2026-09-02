@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"sort"
 	"time"
 )
 
@@ -86,7 +87,52 @@ func doMap(taskId int, filename string, numReduce int, mapf func(string, string)
 	CompleteTask(taskId, MapTask)
 }
 
-func doReduce(taskId int, mapFiles []string, reducef func(string, []string) string) {}
+func doReduce(taskId int, mapFiles []string, reducef func(string, []string) string) {
+	// đọc tất cả intermediate file mr-X-Y
+	intermediate := []KeyValue{}
+	for _, filename := range mapFiles {
+		file, err := os.Open(filename)
+		if err != nil {
+			log.Fatalf("cannot open %v", filename)
+		}
+		dec := json.NewDecoder(file)
+		for {
+			var kv KeyValue
+			if err := dec.Decode(&kv); err != nil {
+				break
+			}
+			intermediate = append(intermediate, kv)
+		}
+		file.Close()
+	}
+
+	// sort gom trùng key cạnh nhau
+	sort.Sort(ByKey(intermediate))
+
+	// ghi vào temp file 
+	oname := fmt.Sprintf("mr-out-%d", taskId)
+	tmp, err := os.CreateTemp("", "mr-tmp-*")
+	if err != nil {
+		log.Fatalf("cannot create temp file: %v", err)
+	}
+	i := 0
+	for i < len(intermediate) {
+		j := i + 1
+		for j < len(intermediate) && intermediate[j].Key == intermediate[i].Key {
+			j++
+		}
+		values := []string{}
+		for k := i; k < j; k++ {
+			values = append(values, intermediate[k].Value)
+		}
+		output := reducef(intermediate[i].Key, values)
+		fmt.Fprintf(tmp, "%v %v\n", intermediate[i].Key, output)
+		i = j
+	}
+	tmp.Close()
+	os.Rename(tmp.Name(), oname)
+	CompleteTask(taskId, ReduceTask)
+}
 
 func getTask() Task {
 	args := RequestTaskArgs{}
