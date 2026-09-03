@@ -195,6 +195,7 @@ func (this *Coordinator) CompleteTask(args *CompleteTaskArgs, reply *CompleteTas
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{
+		files:   files,
 		nReduce: nReduce,
 		nMap:    len(files),
 		phase:   Map,
